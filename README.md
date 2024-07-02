@@ -142,6 +142,7 @@ dig @127.0.0.1 local
 # Verify with ping
 ping local.
 ```
+<img width="598" alt="Screenshot 2024-06-27 at 17 08 10" src="https://github.com/annaolenych/for-Ramp-up-plan/assets/95705808/a50b01d2-5efb-41f0-8cda-5e22819f0747">
 
 You should receive responses with the IP address `127.0.0.1` for the domain `local`.
 
