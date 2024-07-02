@@ -130,6 +130,8 @@ docker build -t my-bind-server .
 # Run the container
 docker run -d --name bind-server -p 53:53/tcp -p 53:53/udp my-bind-server
 ```
+Result:
+<img width="967" alt="Screenshot 2024-06-27 at 17 09 16" src="https://github.com/annaolenych/for-Ramp-up-plan/assets/95705808/d52684f3-8cb3-462a-80b1-dc17c57dd2fa">
 
 ### 7. Verify DNS Server Operation
 
@@ -138,14 +140,17 @@ After starting the container, verify that the DNS server is working correctly:
 ```bash
 # Verify with dig
 dig @127.0.0.1 local
+ping local.
+```
+Result:
+<img width="598" alt="Screenshot 2024-06-27 at 17 08 10" src="https://github.com/annaolenych/for-Ramp-up-plan/assets/95705808/a50b01d2-5efb-41f0-8cda-5e22819f0747">
 
+```bash
 # Verify with ping
 ping local.
 ```
-<img width="598" alt="Screenshot 2024-06-27 at 17 08 10" src="https://github.com/annaolenych/for-Ramp-up-plan/assets/95705808/a50b01d2-5efb-41f0-8cda-5e22819f0747">
+Result:
+<img width="413" alt="Screenshot 2024-07-01 at 12 09 00" src="https://github.com/annaolenych/for-Ramp-up-plan/assets/95705808/0c27af80-036a-4b0a-af76-eca0bc8e0f93">
 
 You should receive responses with the IP address `127.0.0.1` for the domain `local`.
 
----
-
-This file provides detailed instructions for setting up a BIND DNS server using Docker on Ubuntu. It can be expanded to include additional features and configurations according to your needs.
