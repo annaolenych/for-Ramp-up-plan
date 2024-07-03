@@ -1,0 +1,42 @@
+/* groovylint-disable LineLength, NestedBlockDepth */
+pipeline {
+    agent any
+    tools {
+        terraform 'terraform'
+    }
+    parameters {
+        choice(name: 'ENV', choices: ['dev', 'stage', 'prod'], description: 'Deployment environment')
+        string(name: 'ENV_VARIABLE', defaultValue: '01', description: 'ENV Variable')
+        choice(name: 'REGION', choices: ['europe', 'us'], description: 'Select the region')
+        choice(name: 'ZONE', choices: ['west3', 'east5'], description: 'Select the zone')
+        string(name: 'PROJECT_NAME', defaultValue: 'geo', description: 'Project name')
+    }
+    environment {
+        ENVIRONMENT = "GCP-SA-${params.ENV}"
+        GEO_ENV = "${params.ENV}-${params.ENV_VARIABLE}-${params.REGION}-${params.ZONE}-${params.PROJECT_NAME}"
+    }
+    stages {
+        
+        stage('Destroy') {
+            input {
+                message 'Do you want to destroy infrastructure?'
+                ok 'Destroy'
+                parameters {
+                    booleanParam defaultValue: false, description: 'Do you really want to destroy infrastructure?', name: 'DESTROY'
+                }
+            }
+            steps {
+                withCredentials([file(credentialsId: "${ENVIRONMENT}", variable: 'GOOGLE_CREDENTIALS')]) {
+                    dir('terraform/environments') {
+                        sh 'make destroy'
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}

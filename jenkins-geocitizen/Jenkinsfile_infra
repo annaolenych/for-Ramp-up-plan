@@ -1,0 +1,53 @@
+/* groovylint-disable DuplicateStringLiteral, LineLength, NestedBlockDepth */
+pipeline {
+    agent any
+    tools {
+        terraform 'terraform'
+    }
+    parameters {
+        choice(name: 'ENV', choices: ['dev', 'stage', 'prod'], description: 'Deployment environment')
+        string(name: 'ENV_VARIABLE', defaultValue: '01', description: 'ENV Variable')
+        choice(name: 'REGION', choices: ['europe', 'us'], description: 'Select the region')
+        choice(name: 'ZONE', choices: ['west3', 'east5'], description: 'Select the zone')
+        string(name: 'PROJECT_NAME', defaultValue: 'geo', description: 'Project name')
+    }
+    environment {
+        ENVIRONMENT = "GCP-SA-${params.ENV}"
+        GEO_ENV = "${params.ENV}-${params.ENV_VARIABLE}-${params.REGION}-${params.ZONE}-${params.PROJECT_NAME}"
+    }
+    stages {
+        stage('Init and Plan') {
+            steps {
+                script {
+                    echo "Selected environment GEO: ${GEO_ENV}"
+                }
+                withCredentials([file(credentialsId: "${ENVIRONMENT}", variable: 'GOOGLE_CREDENTIALS')]) {
+                    dir('terraform/environments') {
+                        sh "make plan"
+                    }
+                }
+            }
+        }
+        stage('Approve') {
+            input {
+                message 'Do you want to apply infrastructure?'
+                ok 'Apply'
+                parameters {
+                    booleanParam defaultValue: false, description: 'Do you really want to apply infrastructure (By default "No" )?', name: 'APPLY'
+                }
+            }
+            steps {
+                withCredentials([file(credentialsId: "${ENVIRONMENT}", variable: 'GOOGLE_CREDENTIALS')]) {
+                    dir('terraform/environments') {
+                        sh "make apply"
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}

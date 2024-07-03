@@ -1,0 +1,92 @@
+/* groovylint-disable DuplicateStringLiteral, LineLength, NestedBlockDepth */
+pipeline {
+    agent any
+    tools {
+        maven 'M3'
+        jfrog 'jfrog-cli'
+    }
+    parameters {
+        choice(name: 'ENV', choices: ['dev', 'stage', 'prod'], description: 'Deployment environment')
+        string(name: 'ENV_VARIABLE', defaultValue: '01', description: 'ENV Variable')
+        choice(name: 'REGION', choices: ['europe', 'us'], description: 'Select the region')
+        choice(name: 'ZONE', choices: ['west3', 'east5'], description: 'Select the zone')
+        string(name: 'BUILDNAME', defaultValue: 'citizen', description: 'Build Name')
+    }
+    environment {
+        CREDENTIALS_FILE = credentials('env')
+        ENVIRONMENT = "GCP-SA-${params.ENV}"
+        hash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        buildName = "${params.ENV}-${params.BUILDNAME}-$BUILD_NUMBER-${hash}"
+        repo = "geocit-${params.ENV}-maven-local"
+    }
+    stages {
+        stage('git checkout') {
+                steps {
+                    script {
+                        git branch: 'main', credentialsId: 'gitcreds', url: 'git@github.com:CapybaraDevOps/geocit.git'
+                    }
+                }
+        }
+        stage('Check IP') {
+            steps {
+                withCredentials([file(credentialsId: "${ENVIRONMENT}", variable: 'GOOGLE_CREDENTIALS')]) {
+                      script{
+                            sh 'gcloud auth activate-service-account --key-file=$GOOGLE_CREDENTIALS'
+                            def projectId = sh(script: "gcloud projects list --format='table(projectId)' | grep capybara", returnStdout: true).trim() 
+                            sh "gcloud config set project ${projectId}"
+                            def secretName = sh(script: "gcloud secrets list --filter='name:geo-database-credentials' --format='value(name)'", returnStdout: true).trim()
+                            env.dbPassword = sh(script: "gcloud secrets versions access latest --secret=${secretName} --project=${projectId}", returnStdout: true).trim()
+                            env.postgresIP = sh(script: "gcloud sql instances describe $ENV-$ENV_VARIABLE-$REGION-$ZONE-postgres-db  --project=${projectId} --format='value(ipAddresses.ipAddress)'")
+                      }
+                }
+            }
+        }
+        stage('Configure') {
+            steps {
+                script {
+                    withCredentials([file(credentialsId: 'env', variable: 'CREDENTIALS_FILE')]) {
+                        def json = readJSON file: "${CREDENTIALS_FILE}"
+                        appProp = 'src/main/resources/application.properties'
+                        app_js = 'src/main/webapp/static/js/app.*.js'
+                        sh "sed -i 's|http://localhost:8080|https://capybara.pp.ua|g' $appProp"
+                        sh "sed -i 's|localhost:5432|$postgresIP:5432|g' $appProp"
+                        sh "sed -i 's|http://localhost:8080|https://capybara.pp.ua|g' $app_js"
+
+                        sh "sed -i 's|^db.username=.*|db.username=${json.db.username}|' ${appProp}"
+                        sh "sed -i 's|^db.password=.*|db.password=${dbPassword}|' ${appProp}"
+
+                        sh "sed -i 's|^username=.*|username=${json.username}|' ${appProp}"
+                        sh "sed -i 's|^password=.*|password=${dbPassword}|' ${appProp}"
+
+                        sh "sed -i 's|^email.username=.*|email.username=${json.email.username}|' ${appProp}"
+                        sh "sed -i 's|^email.password=.*|email.password=${json.email.password}|' ${appProp}"
+                        sh "sed -i 's|^map.key=.*|map.key=${json.map.key}|' ${appProp}"
+                    }
+                }
+            }
+        }
+        stage('Build Back-end') {
+            steps {
+                sh 'mvn clean package -Dmaven.test.skip=true'
+            }
+        }
+        stage('Test Back-end') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        stage('Artifactory') {
+            steps {
+                script {
+                    jf "rt u ${WORKSPACE}/target/citizen.war ${repo}/${buildName}.war"
+                    jf 'rt bp'
+                }
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
