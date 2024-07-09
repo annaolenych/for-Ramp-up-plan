@@ -1,6 +1,4 @@
-Ось повний `README.md` файл:
 
-```markdown
 # Nginx Monitor Script
 
 This script is a simple curl-based monitor to check the status of an Nginx proxy running in an Ubuntu container. It logs the status of the Nginx server to a log file and can be scheduled to run at regular intervals using cron.
