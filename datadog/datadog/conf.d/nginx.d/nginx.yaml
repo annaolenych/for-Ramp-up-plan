@@ -1,0 +1,6 @@
+init_config:
+
+instances:
+  - nginx_status_url: http://nginx_proxy/nginx_status
+    tags:
+      - instance:my_nginx
