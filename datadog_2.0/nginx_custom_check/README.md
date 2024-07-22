@@ -111,7 +111,7 @@ instances:
 
     ```sh
     docker run -d --name dddd-agent --network my_network \
-    -e DD_API_KEY=464f1c906f6db5ab5bbc75b20e79a2a5 \
+    -e DD_API_KEY= \
     -e DD_SITE="datadoghq.eu" \
     -v /var/run/docker.sock:/var/run/docker.sock:ro \
     -v /proc/:/host/proc/:ro \
