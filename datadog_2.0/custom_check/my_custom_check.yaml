@@ -1,0 +1,3 @@
+instances:
+  - name: My Custom Check
+    some_config: value

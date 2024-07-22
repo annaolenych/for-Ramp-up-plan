@@ -1,0 +1,3 @@
+instances:
+  - name: Nginx Status Check
+    url: http://nginx_container
