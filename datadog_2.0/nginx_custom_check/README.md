@@ -1,3 +1,5 @@
+Certainly! Here’s a detailed `README.md` in English for your custom Datadog check Docker setup:
+
 # Nginx Status Check Docker
 
 This project provides a custom Datadog check that monitors the status of an Nginx page. The Docker container is set up to run this check in a Datadog environment.
@@ -28,7 +30,43 @@ RUN pip install requests datadog
 COPY nginx_status_check.py /checks.d/nginx_status_check.py
 
 CMD ["sleep", "infinity"]
+```
 
+### Instructions:
+
+1. **Base Image**: `python:3.12-slim`
+   - A minimal Python 3.12 environment.
+
+2. **Install Dependencies**:
+   - `requests`: For making HTTP requests.
+   - `datadog`: Datadog's Python library for custom checks.
+
+3. **Copy Check Script**:
+   - `nginx_status_check.py` is copied to `/checks.d` where Datadog looks for custom checks.
+
+4. **Run Command**:
+   - The container is set to sleep indefinitely. This is because the custom check will be executed by the Datadog Agent, and the container needs to remain running.
+
+## nginx_status_check.py
+
+This script defines a custom Datadog check for monitoring Nginx status.
+
+```python
+import requests
+from datadog_checks.base import AgentCheck
+
+class NginxStatusCheck(AgentCheck):
+    def check(self, instance):
+        url = instance.get('url', 'http://localhost')
+        try:
+            response = requests.get(url)
+            
+            status_code = response.status_code
+            self.gauge('nginx.status_custom_code', status_code, tags=['url:{}'.format(url)])
+        except requests.RequestException as e:
+            self.log.error(f"Error checking Nginx status: {e}")
+            self.gauge('nginx.status_custom_code', 0, tags=['url:{}'.format(url)])
+```
 
 ### Explanation:
 
@@ -73,17 +111,19 @@ instances:
 
     ```sh
     docker run -d --name dddd-agent --network my_network \
--e DD_API_KEY= \
--e DD_SITE="datadoghq.eu" \
--v /var/run/docker.sock:/var/run/docker.sock:ro \
--v /proc/:/host/proc/:ro \
--v /sys/fs/cgroup/:/host/sys/fs/cgroup:ro \
--v /var/lib/docker/containers:/var/lib/docker/containers:ro \
--v $(pwd)/nginx_status_check.py:/etc/datadog-agent/checks.d/nginx_status_check.py \
--v $(pwd)/nginx_status_check.yaml:/etc/datadog-agent/conf.d/nginx_status_check.d/my_custom_check.yaml \
-gcr.io/datadoghq/agent:7
+    -e DD_API_KEY=464f1c906f6db5ab5bbc75b20e79a2a5 \
+    -e DD_SITE="datadoghq.eu" \
+    -v /var/run/docker.sock:/var/run/docker.sock:ro \
+    -v /proc/:/host/proc/:ro \
+    -v /sys/fs/cgroup/:/host/sys/fs/cgroup:ro \
+    -v /var/lib/docker/containers:/var/lib/docker/containers:ro \
+    -v $(pwd)/nginx_status_check.py:/etc/datadog-agent/checks.d/nginx_status_check.py \
+    -v $(pwd)/nginx_status_check.yaml:/etc/datadog-agent/conf.d/nginx_status_check.d/my_custom_check.yaml \
+    gcr.io/datadoghq/agent:7
     ```
+<img width="458" alt="Screenshot 2024-07-22 at 16 32 55" src="https://github.com/user-attachments/assets/7cd8b3a2-8bcd-4bd0-8f13-a53da7bf47b6">
 
 3. **Verify**:
    - Ensure that the custom check is running properly and reporting metrics to Datadog.
 
+<img width="886" alt="Screenshot 2024-07-22 at 16 34 24" src="https://github.com/user-attachments/assets/a6a6bd7b-bc2d-4bb1-acd0-091eb4a6b84d">
