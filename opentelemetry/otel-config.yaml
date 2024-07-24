@@ -1,0 +1,22 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: "localhost:4318"
+      grpc:
+        endpoint: "localhost:4317"
+
+exporters:
+  otlphttp:
+    endpoint: "https://api.datadoghq.eu/api/v2/metrics"
+    headers:
+      "DD-API-KEY": ""
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      exporters: [otlphttp]

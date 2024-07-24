@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    container_name: otel-collector
+    volumes:
+      - ./otel-config.yaml:/otel-local-config.yaml
+    command: ["--config", "/otel-local-config.yaml"]
