@@ -34,8 +34,8 @@ processors:
 exporters:
   datadog:
     api:
-      site: us5.datadoghq.com
-      key: 0615a5c53082b40e6c8f1ff5946abd51
+      site: 
+      key: 
 
 service:
   pipelines:
