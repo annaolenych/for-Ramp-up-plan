@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  nodeapp:
+    build:
+      context: ./my-node-api
+      dockerfile: Dockerfile
+    container_name: my-node-app-instance
+    ports:
+      - "8080:8080"
+  envoy:
+    build:
+      context: ./envoy
+      dockerfile: Dockerfile
+    container_name: my-envoy-instance
+    ports:
+      - "10000:10000"
+    volumes:
+      - ./envoy/envoy.yaml:/etc/envoy/envoy.yaml
+    depends_on:
+      - nodeapp
+
