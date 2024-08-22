@@ -120,8 +120,8 @@ sudo ufw allow 3306/tcp
     ```sql
     SHOW SLAVE STATUS\G;
     ```
-<img width="974" alt="Screenshot 2024-08-14 at 00 29 59" src="https://github.com/user-attachments/assets/90c139d4-00b7-4d5c-8fbf-ca1e8d31e521">
-<img width="974" alt="Screenshot 2024-08-14 at 00 29 59" src="https://github.com/user-attachments/assets/9bd8f20a-ae97-463a-b515-0645e5fc203f">
+<img width="732" alt="Screenshot 2024-08-14 at 00 27 28" src="https://github.com/user-attachments/assets/2025ba4f-f493-44f3-8b3a-f851647cead5">
+<img width="675" alt="Screenshot 2024-08-14 at 00 27 38" src="https://github.com/user-attachments/assets/762a19b4-ea58-465e-96e5-9fd7bf61c21d">
 
 7. result(test data):
 <img width="688" alt="Screenshot 2024-08-14 at 00 30 47" src="https://github.com/user-attachments/assets/6cfffb89-8f01-43a5-9a39-91e926173d35">
