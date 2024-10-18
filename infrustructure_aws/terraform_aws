@@ -1,1 +1,158 @@
+provider "aws" {
+  region = "us-west-1"
+}
+resource "aws_vpc" "vpc"{
+        cidr_block = "192.168.0.0/16"
 
+        tags = {
+                Name = "Terraform_VPC"
+        }
+}
+variable "aws_azs" {
+        type = list(string)
+        default = ["us-west-1a", "us-west-1b"]
+}
+
+variable "public_subnet_cidrs" {
+        type        = list(string)
+        description = "Public Subnet CIDR values"
+        default     = ["192.168.1.0/24", "192.168.2.0/24"]
+}
+
+resource "aws_subnet" "public_subnets" {
+        count = length(var.public_subnet_cidrs)
+        vpc_id = aws_vpc.vpc.id
+        availability_zone = element(var.aws_azs, count.index)
+        cidr_block = element(var.public_subnet_cidrs, count.index)
+
+        tags = {
+                Name = "public_subnet- ${count.index + 1}"
+        }
+}
+
+variable "private_subnet_cidrs" {
+        type = list(string)
+        description = "Private subnet CIDR values"
+        default = ["192.168.3.0/24", "192.168.4.0/24"]
+}
+
+resource "aws_subnet" "private_subnets" {
+        count = length(var.private_subnet_cidrs)
+        vpc_id = aws_vpc.vpc.id
+        availability_zone = element(var.aws_azs, count.index)
+        cidr_block = element(var.private_subnet_cidrs, count.index)
+
+        tags = {
+                Name = "private-subnet- ${count.index + 1}"
+        }
+}
+resource "aws_internet_gateway" "igw" {
+        vpc_id = aws_vpc.vpc.id
+        tags = {
+                Name = "terrform-vpc-igw"
+        }
+}
+
+resource "aws_route_table" "second-rt" {
+        vpc_id = aws_vpc.vpc.id
+        route {
+                cidr_block = "0.0.0.0/0"
+                gateway_id = aws_internet_gateway.igw.id
+        }
+
+        tags = {
+                Name = "Public-route-table"
+        }
+}
+
+resource "aws_route_table_association" "public-subnets-asso" {
+        count = length(var.public_subnet_cidrs)
+        subnet_id = element(aws_subnet.public_subnets[*].id, count.index)
+        route_table_id = aws_route_table.second-rt.id
+}
+resource "aws_security_group" "sg" {
+        name = "terraform_sg"
+        description = "This security group is for terraform practice"
+        vpc_id = aws_vpc.vpc.id
+
+        tags = {
+                Name = "terraform_vg"
+        }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "sg_in_rule" {
+        security_group_id = aws_security_group.sg.id
+        cidr_ipv4 = "0.0.0.0/0"
+        from_port = 80
+        ip_protocol = "tcp"
+        to_port = 80
+}
+
+resource "aws_vpc_security_group_ingress_rule" "sg_in_rule2" {
+        security_group_id = aws_security_group.sg.id
+        cidr_ipv4 = "0.0.0.0/0"
+        from_port = 22
+        ip_protocol = "tcp"
+        to_port = 22
+}
+
+
+resource "aws_vpc_security_group_egress_rule" "sg_eg_rule" {
+        security_group_id = aws_security_group.sg.id
+        cidr_ipv4         = "0.0.0.0/0"
+        ip_protocol       = "-1" # semantically equivalent to all ports
+}
+data "aws_ami" "rhel9" {
+        most_recent = true
+
+        owners = ["309956199498"] // Red Hat's account ID.
+
+        filter {
+                name   = "architecture"
+                values = ["x86_64"]
+        }
+
+        filter {
+                name   = "root-device-type"
+                values = ["ebs"]
+        }
+
+        filter {
+                name   = "virtualization-type"
+                values = ["hvm"]
+        }
+
+        filter {
+                name   = "name"
+                values = ["RHEL-9.*"]
+        }
+}
+
+resource "aws_instance" "ec2-1" {
+        ami           = data.aws_ami.rhel9.id
+        instance_type = "t2.micro"
+        key_name = "new-key"
+        subnet_id = aws_subnet.public_subnets[0].id
+        vpc_security_group_ids = [aws_security_group.sg.id]
+        associate_public_ip_address = true
+
+
+        tags = {
+                Name = "Terraform Project"
+        }
+}
+resource "aws_ebs_volume" "EBS" {
+        size = 2
+        availability_zone = aws_instance.ec2-1.availability_zone
+        tags = {
+                Name = "Terraform-project-ebs"
+        }
+}
+resource "aws_volume_attachment" "ebs_attach" {
+        device_name = "/dev/xvdb"
+        volume_id = aws_ebs_volume.EBS.id
+        instance_id = aws_instance.ec2-1.id
+}
+output "ec2_instance_ip" {
+        value = aws_instance.ec2-1.public_ip
+}
